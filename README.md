@@ -23,13 +23,14 @@ involved, and experiments with real agents are future work.
 | `tests/test_sodrm.py` | Targeted tests |
 | `bench/run.py` | Synthetic workloads (monitor vs. oracle) and latency measurements |
 | `bench/plot_lncs.py` | Fig. 2 of the paper |
+| `experiments/gridops/` | First experiment with LLM agents (GridOps-SoD), see its README |
 | `results/` | Results reported in the paper (`summary.json`, `latency_*.csv`, `fig2_latency.pdf`) |
 
 ## Reproducing the results
 
 ```bash
 pip install pytest matplotlib
-python -m pytest -q                         # targeted tests
+python -m pytest -q                         # targeted tests (+ pandapower for the experiment)
 python bench/run.py                         # synthetic workloads and latency (~1 min)
 python bench/plot_lncs.py results/fig2.pdf  # Fig. 2
 ```

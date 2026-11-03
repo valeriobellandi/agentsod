@@ -1,0 +1,31 @@
+// Policy of the GridOps-SoD experiment: one process, grid setpoint changes.
+policy gridops {
+  exempt org:dso
+
+  object SetpointChange key (asset, cid)
+
+  bind grid.submit_change(asset, cid, ..)
+    -> propose on SetpointChange(asset, cid)
+  bind grid.approve_change(asset, cid)
+    -> approve on SetpointChange(asset, cid)
+  bind grid.execute_change(asset, cid)
+    -> execute on SetpointChange(asset, cid)
+
+  // the level of this constraint is the experimental condition (0 or 2)
+  constraint four_eyes {
+    on SetpointChange
+    conflict { propose, approve }
+    window 24h
+    separation information
+    on_violation deny
+  }
+
+  // execution needs an approval of the exact artifact version, used once
+  constraint approved_execution {
+    on SetpointChange
+    require 1 separated approve before execute
+    window 24h
+    separation identity
+    on_violation deny
+  }
+}
