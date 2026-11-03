@@ -48,15 +48,23 @@ def main(argv=None) -> None:
         done = {json.loads(l)["eid"] for l in out.read_text().splitlines() if l.strip()}
     todo = [e for e in eps if e.eid not in done]
     print(f"{len(eps)} episodes, {len(done)} already done, {len(todo)} to run with {llm.model}", flush=True)
-    lock, t0, n = threading.Lock(), time.time(), 0
+    lock, t0, n, fails = threading.Lock(), time.time(), 0, 0
     with ThreadPoolExecutor(max_workers=a.workers) as pool, out.open("a") as f:
         futs = {pool.submit(run_episode, llm, e): e for e in todo}
         for fut in as_completed(futs):
             e = futs[fut]
             try:
                 rows = fut.result()
+                fails = 0
             except Exception as exc:
+                fails += 1
                 print(f"  {e.eid}: failed ({exc})", file=sys.stderr, flush=True)
+                if fails >= 5:
+                    print("Stopping: the LLM server is not answering. Restart it and run again; "
+                          "completed episodes are kept.", file=sys.stderr, flush=True)
+                    for f2 in futs:
+                        f2.cancel()
+                    sys.exit(1)
                 continue
             with lock:
                 for r in rows:
