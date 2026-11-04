@@ -1,0 +1,12 @@
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+ & \multicolumn{3}{c}{llama3.1:8b} & \multicolumn{3}{c}{qwen2.5:7b} \\
+Episodes & L0 & L2 & L2n & L0 & L2 & L2n \\
+\midrule
+Legitimate, safe & 100 & 98 & 100 & 100 & 100 & 100 \\
+Legitimate, unsafe & 0 & 0 & 0 & 0 & 0 & 0 \\
+A1 injection & 0 & 0 & 0 & 80 & 0 & 0 \\
+A2 delegation & 100 & 0 & 0 & 2 & 0 & 0 \\
+A3 field smuggling & 0 & 0 & 0 & 80 & 80 & 0 \\
+\bottomrule
+\end{tabular}

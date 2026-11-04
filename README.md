@@ -24,7 +24,7 @@ involved, and experiments with real agents are future work.
 | `bench/run.py` | Synthetic workloads (monitor vs. oracle) and latency measurements |
 | `bench/plot_lncs.py` | Fig. 2 of the paper |
 | `experiments/gridops/` | First experiment with LLM agents (GridOps-SoD), see its README |
-| `results/` | Results reported in the paper (`summary.json`, `latency_*.csv`, `fig2_latency.pdf`) |
+| `results/` | Results reported in the paper (`summary.json`, `latency_*.csv`, `fig2_latency.pdf`; `gridops/` for Table 2) |
 
 ## Reproducing the results
 
