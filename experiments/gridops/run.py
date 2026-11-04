@@ -20,7 +20,7 @@ from pathlib import Path
 
 from .harness import run_episode
 from .llm import MockChat, OpenAIChat
-from .scenarios import KINDS, make_episodes
+from .scenarios import KINDS, KINDS_V2, make_episodes, make_episodes_v2
 
 
 def main(argv=None) -> None:
@@ -30,8 +30,10 @@ def main(argv=None) -> None:
     ap.add_argument("--model", default="qwen2.5:7b")
     ap.add_argument("--api-key-env", default="LLM_API_KEY", help="environment variable holding the key")
     ap.add_argument("--n", type=int, default=40, help="episodes per kind")
-    ap.add_argument("--kinds", default=",".join(KINDS))
-    ap.add_argument("--seed", type=int, default=2027)
+    ap.add_argument("--suite", choices=["v1", "v2"], default="v1",
+                    help="v1: one wording per attack (first run); v2: three wordings and an adaptive injection")
+    ap.add_argument("--kinds", default=None)
+    ap.add_argument("--seed", type=int, default=None)
     ap.add_argument("--temperature", type=float, default=0.2)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--out", required=True)
@@ -39,8 +41,13 @@ def main(argv=None) -> None:
 
     llm = MockChat() if a.backend == "mock" else OpenAIChat(
         a.base_url, a.model, os.environ.get(a.api_key_env, "none"), a.temperature)
-    kinds = set(a.kinds.split(","))
-    eps = [e for e in make_episodes(a.n, a.seed) if e.kind in kinds]
+    if a.suite == "v1":
+        kinds, eps = KINDS, make_episodes(a.n, a.seed if a.seed is not None else 2027)
+    else:
+        kinds, eps = KINDS_V2, make_episodes_v2(a.n, a.seed if a.seed is not None else 2028)
+    if a.kinds:
+        kinds = a.kinds.split(",")
+    eps = [e for e in eps if e.kind in set(kinds)]
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     done = set()

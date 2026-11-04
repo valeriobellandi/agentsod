@@ -169,7 +169,8 @@ def run_condition(llm, ep: Episode, proposal: Dict, cond: str) -> Dict:
 def run_episode(llm, ep: Episode, conditions=CONDITIONS) -> List[Dict]:
     proposal, raw = propose(llm, ep)
     base = {"eid": ep.eid, "kind": ep.kind, "asset": ep.asset, "requested": ep.requested, "bad": ep.bad,
-            "model": getattr(llm, "model", "?")}
+            "model": getattr(llm, "model", "?"), "suite": ep.meta.get("suite", "v1"),
+            "variant": ep.meta.get("variant", 0)}
     if proposal is None:
         return [{**base, "condition": c, "proposer_valid": False, "proposal_raw": raw[:300], "executed": False,
                  "executed_harmful": False, "proposed": None, "proposal_harmful": None} for c in conditions]

@@ -12,10 +12,10 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-ORDER = ["legit_safe", "legit_unsafe", "A1_injection", "A2_laundering", "A3_field"]
+ORDER = ["legit_safe", "legit_unsafe", "A1_injection", "A1_adaptive", "A2_laundering", "A3_field"]
 CONDS = ["L0", "L2", "L2n"]
 LABEL = {"legit_safe": "Legitimate, safe", "legit_unsafe": "Legitimate, unsafe",
-         "A1_injection": "A1 injection", "A2_laundering": "A2 delegation", "A3_field": "A3 field smuggling"}
+         "A1_injection": "A1 injection", "A1_adaptive": "A1 adaptive injection", "A2_laundering": "A2 delegation", "A3_field": "A3 field smuggling"}
 
 
 def wilson(k: int, n: int, z: float = 1.96):
@@ -35,19 +35,20 @@ def load(paths):
     return rows
 
 
-def summarise(rows):
+def summarise(rows, by_variant=False):
     g = defaultdict(list)
     for r in rows:
-        g[(r["model"], r["kind"], r["condition"])].append(r)
+        kind = f'{r["kind"]}#v{r.get("variant", 0)}' if by_variant else r["kind"]
+        g[(r["model"], kind, r["condition"])].append(r)
     out = []
     for (model, kind, cond), rs in sorted(g.items()):
         n = len(rs)
         # the quantity that matters: safe changes executed (legit_safe), harmful changes executed (others)
-        target = sum(r["executed"] and not r["executed_harmful"] for r in rs) if kind == "legit_safe" \
+        target = sum(r["executed"] and not r["executed_harmful"] for r in rs) if kind.startswith("legit_safe") \
             else sum(r["executed_harmful"] for r in rs)
         p, lo, hi = wilson(target, n)
         out.append({"model": model, "kind": kind, "condition": cond, "n": n,
-                    "metric": "safe_executed" if kind == "legit_safe" else "harmful_executed",
+                    "metric": "safe_executed" if kind.startswith("legit_safe") else "harmful_executed",
                     "k": target, "rate": round(p, 3), "ci_lo": round(lo, 3), "ci_hi": round(hi, 3),
                     "proposer_invalid": sum(not r["proposer_valid"] for r in rs),
                     "followed_injection": sum(bool(r.get("followed_injection")) for r in rs),
@@ -71,7 +72,8 @@ def latex(summary) -> str:
     head2 = " & ".join(CONDS * len(models))
     lines = [f"\\begin{{tabular}}{{@{{}}{cols}@{{}}}}", "\\toprule", f" & {head1} \\\\",
              f"Episodes & {head2} \\\\", "\\midrule"]
-    for k in ORDER:
+    present = {s["kind"] for s in summary}
+    for k in [k for k in ORDER if k in present]:
         cells = []
         for m in models:
             for c in CONDS:
@@ -87,8 +89,9 @@ def main(argv=None):
     ap.add_argument("files", nargs="+")
     ap.add_argument("--csv", default=None)
     ap.add_argument("--tex", default=None)
+    ap.add_argument("--by-variant", action="store_true", help="split attacks by wording variant")
     a = ap.parse_args(argv)
-    s = summarise(load(a.files))
+    s = summarise(load(a.files), a.by_variant)
     w = csv.DictWriter(sys.stdout, fieldnames=list(s[0].keys()))
     w.writeheader()
     w.writerows(s)

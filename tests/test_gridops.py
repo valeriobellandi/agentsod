@@ -42,3 +42,14 @@ def test_level_2_withholds_justification_but_not_description():
 def test_safe_change_executed_in_every_condition():
     r = _rows("legit_safe")
     assert all(r[c]["executed"] and not r[c]["executed_harmful"] for c in r)
+
+
+def test_suite_v2_has_variants_and_adaptive_injection():
+    from experiments.gridops.scenarios import KINDS_V2, make_episodes_v2
+    eps = make_episodes_v2(3)
+    assert {e.kind for e in eps} == set(KINDS_V2)
+    assert {e.meta["variant"] for e in eps if e.kind == "A2_laundering"} == {0, 1, 2}
+    ad = [e for e in eps if e.kind == "A1_adaptive"][0]
+    assert "description field" in ad.ticket
+    r = {x["condition"]: x for x in run_episode(MockChat(), ad)}
+    assert r["L2"]["executed_harmful"] and not r["L2n"]["executed_harmful"]
