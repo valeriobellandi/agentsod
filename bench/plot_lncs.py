@@ -18,10 +18,13 @@ def eu(x, pos=None):
 EU = FuncFormatter(eu)
 
 R = Path(__file__).resolve().parent.parent / "results"
-out = Path(sys.argv[1]) if len(sys.argv) > 1 else R / "latency_lncs.pdf"
+args = [a for a in sys.argv[1:] if not a.startswith("--")]
+PANELS = 4 if "--panels=4" in sys.argv else 2
+out = Path(args[0]) if args else R / "latency_lncs.pdf"
 def load(k): return list(csv.DictReader(open(R / f"latency_{k}.csv")))
-specs = [("trace", "trace_len", "trace length (events)"), ("context", "context", r"context size $|C_j|$")]
-fig, axes = plt.subplots(1, 2, figsize=(4.0, 1.42))
+specs = [("trace", "trace_len", "trace length (events)"), ("context", "context", r"context size $|C_j|$"),
+         ("depth", "depth", "delegation depth"), ("hot", "hot", r"events on one object ($k$)")][:PANELS]
+fig, axes = plt.subplots(*((2, 2) if PANELS == 4 else (1, 2)), figsize=(4.8, 3.1) if PANELS == 4 else (4.0, 1.42))
 for idx, (ax, (k, col, label)) in enumerate(zip(axes.flat, specs)):
     rows = load(k); xs = [float(r[col]) for r in rows]
     ax.plot(xs, [float(r["median_us"]) / 1000 for r in rows], marker="o", ms=3.2, lw=1, label="median")
