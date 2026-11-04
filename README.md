@@ -2,7 +2,7 @@
 
 Prototype of the reference monitor described in
 
-> V. Bellandi, *Towards Collusion-Resistant Separation of Duties for Multi-Agent LLM Systems*,
+> V. Bellandi, *Separation of Duties for Multi-Agent LLM Systems: Beyond Distinct Identities*,
 > AI-SEC 2027 (workshop at AINA 2027), submitted.
 
 It implements the separation conditions (Sect. 4 of the paper), the AgentSoD policy
