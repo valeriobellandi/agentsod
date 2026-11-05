@@ -387,3 +387,51 @@ def test_substrate_must_differ_in_every_listed_dimension():
         assert d.decision == expect, (model, operator, d.decision)
         if expect == "escalate":
             assert d.witnesses[0]["failed_at"] == 3
+
+
+# ---------------------------------------------------------------- level 2: verifiers and earlier messages
+
+def _l2_monitor(verifiers=()):
+    r = base_registry()
+    for h, extra in (("eng_rossi", "message"), ("eng_bianchi", "simulate"), ("eng_bianchi", "summarize")):
+        r.own_scope[h] = r.own_scope[h] | {(extra, "*")}
+    grant(r, "d1", "eng_rossi", "a1", ["propose", "message"])
+    grant(r, "d2", "eng_bianchi", "a2", ["approve", "simulate", "summarize"])
+    p = copy.copy(only("setpoint_4eyes"))
+    p.constraints = [with_level(p.constraints[0], 2)]
+    p.verifiers = frozenset(verifiers)
+    prov = Provenance()
+    return Monitor(p, r, prov), prov
+
+
+def test_declared_verifier_on_artifact_is_readable_at_level_2():
+    m, _ = _l2_monitor(verifiers={"simulate"})
+    assert m.decide(ev("e1", "a1", "propose", 0, ["d1"], artifact="art1", outputs=["just1"])).decision == "allow"
+    assert m.decide(ev("s1", "a2", "simulate", 10, ["d2"], context=["art1"], outputs=["sim1"])).decision == "allow"
+    assert m.decide(ev("e2", "a2", "approve", 20, ["d2"], context=["art1", "sim1"])).decision == "allow"
+
+
+def test_tool_re_presenting_the_justification_is_blocked_at_level_2():
+    # an undeclared tool, or a declared verifier fed with the justification, keeps the provenance
+    for op, verifiers in (("summarize", {"simulate"}), ("simulate", {"simulate"})):
+        m, _ = _l2_monitor(verifiers=verifiers)
+        m.decide(ev("e1", "a1", "propose", 0, ["d1"], artifact="art1", outputs=["just1"]))
+        m.decide(ev("s1", "a2", op, 10, ["d2"], context=["art1", "just1"], outputs=["out1"]))
+        assert m.decide(ev("e2", "a2", "approve", 20, ["d2"], context=["art1", "out1"])).decision != "allow"
+
+
+def test_message_sent_before_the_proposal_is_blocked_at_level_2():
+    m, prov = _l2_monitor()
+    prov.add_source("ticket")
+    msg_obj = "Chat(a1|a2)"
+    assert m.decide(ev("m1", "a1", "message", 0, ["d1"], context=["ticket"], outputs=["msg1"],
+                       obj=msg_obj)).decision == "allow"
+    m.decide(ev("e1", "a1", "propose", 10, ["d1"], artifact="art1", outputs=["just1"]))
+    assert m.decide(ev("e2", "a2", "approve", 20, ["d2"], context=["art1", "msg1"])).decision != "allow"
+    # the oracle agrees on the same trace
+    m2, prov2 = _l2_monitor()
+    prov2.add_source("ticket")
+    evs = [ev("m1", "a1", "message", 0, ["d1"], context=["ticket"], outputs=["msg1"], obj=msg_obj),
+           ev("e1", "a1", "propose", 10, ["d1"], artifact="art1", outputs=["just1"]),
+           ev("e2", "a2", "approve", 20, ["d2"], context=["art1", "msg1"])]
+    assert ref_run(m2.policy, m2.reg, {"ticket": frozenset()}, evs) == [m2.decide(e).decision for e in evs]

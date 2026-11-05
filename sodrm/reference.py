@@ -41,12 +41,16 @@ def ref_pi(reg, e) -> Optional[Set[str]]:
     return ps
 
 
-def ref_labels(accepted, sources: Dict[str, FrozenSet[str]]) -> Dict[str, Set[str]]:
+def ref_labels(accepted, sources: Dict[str, FrozenSet[str]], verifiers=frozenset()) -> Dict[str, Set[str]]:
     lab: Dict[str, Set[str]] = {k: set(v) for k, v in sources.items()}
+    arts: Set[str] = set()
     for e in accepted:
         inh: Set[str] = set()
-        for d in e.context:
+        declass = e.op in verifiers and set(e.context) <= arts
+        for d in ([] if declass else e.context):
             inh |= lab.get(d, set())
+        if e.artifact:
+            arts.add(e.artifact)
         out = inh | {e.eid}
         for d in set(e.outputs) | ({e.artifact} if e.artifact else set()):
             lab[d] = set(out)
@@ -57,7 +61,8 @@ def _otype(obj: str) -> str:
     return obj.split("(", 1)[0]
 
 
-def _independent(c, reg, exempt, x, y, pis, lab, count) -> bool:
+def _independent(c, reg, exempt, x, y, pis, lab, count, contrib=None) -> bool:
+    contrib = contrib if contrib is not None else {x.eid}
     if x.actor == y.actor:
         return False
     if c.level >= 1 and (pis[x.eid] & pis[y.eid]) - set(exempt):
@@ -66,7 +71,7 @@ def _independent(c, reg, exempt, x, y, pis, lab, count) -> bool:
         for d in y.context:
             if d not in lab:
                 return False
-            if x.eid in lab[d] and d != x.artifact:
+            if (lab[d] & contrib) and d != x.artifact:
                 return False
     if c.level >= 3:
         px, py = reg.principals[x.actor], reg.principals[y.actor]
@@ -94,10 +99,16 @@ def _conflict_pairs(c, accepted, upto=None):
     return out
 
 
-def _first_combo(c, reg, policy, apps, pis, lab):
+def _contrib(accepted, x, t, window) -> Set[str]:
+    """Events of x's actor within the window (the earlier actor's contributions, level 2)."""
+    return {z.eid for z in accepted if z.actor == x.actor and 0 <= t - z.t <= window} | {x.eid}
+
+
+def _first_combo(c, reg, policy, apps, pis, lab, accepted=()):
     apps = sorted(apps, key=lambda a: a.t)
     for combo in combinations(apps, c.require_n):
-        if all(_independent(c, reg, policy.exempt, x, y, pis, lab, 0)
+        if all(_independent(c, reg, policy.exempt, x, y, pis, lab, 0,
+                            _contrib(accepted, x, y.t, c.window))
                for x, y in combinations(combo, 2)):
             return combo
     return None
@@ -110,11 +121,11 @@ def _consumed(c, reg, policy, accepted, pis, sources) -> Set[str]:
         if y.op != c.before_op or not c.applies(_otype(y.obj), dict(y.attrs)):
             continue
         prefix = accepted[:k]
-        lab_k = ref_labels(prefix, sources)
+        lab_k = ref_labels(prefix, sources, policy.verifiers)
         apps = [x for x in prefix if x.obj == y.obj and x.op == c.require_op
                 and c.applies(_otype(x.obj), dict(x.attrs)) and y.t - x.t <= c.window
                 and y.ref is not None and x.ref == y.ref and x.eid not in used]
-        combo = _first_combo(c, reg, policy, apps, pis, lab_k)
+        combo = _first_combo(c, reg, policy, apps, pis, lab_k, prefix)
         if combo is not None:
             used |= {x.eid for x in combo}
     return used
@@ -126,7 +137,7 @@ def ref_decide(policy, reg, sources, accepted: List, e) -> str:
         return "deny"
     pis = {x.eid: ref_pi(reg, x) for x in accepted}
     pis[e.eid] = pi_e
-    lab = ref_labels(accepted, sources)
+    lab = ref_labels(accepted, sources, policy.verifiers)
     dec = "allow"
     for c in policy.constraints:
         if not c.applies(_otype(e.obj), dict(e.attrs)):
@@ -138,14 +149,15 @@ def ref_decide(policy, reg, sources, accepted: List, e) -> str:
                 if (x.obj == e.obj and c.applies(_otype(x.obj), dict(x.attrs))
                         and x.op in c.conflict and x.op != e.op and e.t - x.t <= c.window):
                     cnt = sum(1 for a in last if a == x.actor)
-                    if not _independent(c, reg, policy.exempt, x, e, pis, lab, cnt):
+                    if not _independent(c, reg, policy.exempt, x, e, pis, lab, cnt,
+                                        _contrib(accepted, x, e.t, c.window)):
                         dec = max(dec, c.on_violation, key=SEV.get)
         if c.require_n and e.op == c.before_op:
             consumed = _consumed(c, reg, policy, accepted, pis, sources)
             apps = [x for x in accepted if x.obj == e.obj and x.op == c.require_op
                     and c.applies(_otype(x.obj), dict(x.attrs)) and e.t - x.t <= c.window
                     and e.ref is not None and x.ref == e.ref and x.eid not in consumed]
-            if _first_combo(c, reg, policy, apps, pis, lab) is None:
+            if _first_combo(c, reg, policy, apps, pis, lab, accepted) is None:
                 dec = max(dec, c.on_violation, key=SEV.get)
     return dec
 

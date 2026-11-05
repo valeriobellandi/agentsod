@@ -4,6 +4,10 @@ policy gridops {
 
   object SetpointChange key (asset, cid)
 
+  // the power-flow simulator is a declared verifier: its results, computed from the
+  // artifact only, can be read by the approver at level 2
+  verifier simulate
+
   bind grid.submit_change(asset, cid, ..)
     -> propose on SetpointChange(asset, cid)
   bind grid.approve_change(asset, cid)

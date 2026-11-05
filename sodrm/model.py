@@ -133,10 +133,11 @@ class Provenance:
         self.horizon = horizon
         self.time: Dict[str, int] = {}
 
-    def record_outputs(self, e: Event) -> None:
-        # Outputs of e depend on e and, transitively, on everything in e's context.
+    def record_outputs(self, e: Event, declassified: bool = False) -> None:
+        # Outputs of e depend on e and, transitively, on everything in e's context,
+        # unless e is a declared verifier computed from artifacts only (declassified).
         inherited = set()
-        for d in e.context:
+        for d in ([] if declassified else e.context):
             inherited |= self.labels.get(d, frozenset())
         if self.horizon is not None:
             cutoff = e.t - self.horizon
@@ -150,13 +151,14 @@ class Provenance:
         """Untrusted external item (e.g. an e-mail); empty or given label."""
         self.labels[item] = frozenset(label)
 
-    def influenced_by(self, context: FrozenSet[str], eid: str) -> Optional[FrozenSet[str]]:
-        """Items of the context carrying provenance from eid; None if an item is unlabelled."""
+    def influenced_by(self, context: FrozenSet[str], eids) -> Optional[FrozenSet[str]]:
+        """Items of the context carrying provenance from any of eids; None if an item is unlabelled."""
+        eids = {eids} if isinstance(eids, str) else set(eids)
         out = set()
         for d in context:
             lab = self.labels.get(d)
             if lab is None:
                 return None  # fail-closed: unknown provenance (P4)
-            if eid in lab:
+            if eids & lab:
                 out.add(d)
         return frozenset(out)

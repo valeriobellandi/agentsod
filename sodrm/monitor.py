@@ -94,6 +94,8 @@ class Monitor:
         self.accepted: List[Event] = []
         # approvals already used to authorize a dependent operation: constraint -> eids
         self.consumed: Dict[str, set] = defaultdict(set)
+        self.artifacts: set = set()  # artifact ids produced by accepted events
+        self.by_actor: Dict[str, List[Event]] = defaultdict(list)  # accepted events per actor, in time order
         self._lock = threading.Lock()
 
     def _relevant(self, c: Constraint, op: str) -> bool:
@@ -134,7 +136,8 @@ class Monitor:
                 for e_i in self.index[(c.name, e.obj)]:
                     if not c.conflicts(e_i.op, e.op) or e.t - e_i.t > c.window:
                         continue
-                    infl = self.prov.influenced_by(e.context, e_i.eid) if c.level >= 2 else frozenset()
+                    infl = self.prov.influenced_by(e.context, self._contributions(e_i, e.t, c.window)) \
+                        if c.level >= 2 else frozenset()
                     cnt = sum(1 for a in self._pairs(c, e.actor) if a == e_i.actor) if c.level >= 3 else 0
                     w = check_pair(c, c.level, e_i, e, self.pi[e_i.eid], pi_j, infl, exempt, self.reg, cnt)
                     wits.append(w)
@@ -166,7 +169,8 @@ class Monitor:
         for combo in combinations(apps, c.require_n):
             good = True
             for x, y in combinations(combo, 2):
-                infl = self.prov.influenced_by(y.context, x.eid) if c.level >= 2 else frozenset()
+                infl = self.prov.influenced_by(y.context, self._contributions(x, y.t, c.window)) \
+                    if c.level >= 2 else frozenset()
                 cnt = 0
                 w = check_pair(c, c.level, x, y, self.pi[x.eid], self.pi[y.eid], infl,
                                self.policy.exempt, self.reg, cnt)
@@ -177,10 +181,25 @@ class Monitor:
                 return True, {"require": c.require_n, "approvals": [a.eid for a in combo], "verdict": True}
         return False, {"require": c.require_n, "approvals": [a.eid for a in apps], "verdict": False}
 
+    def _contributions(self, e_i: Event, t: int, window: int) -> set:
+        """Events of e_i's actor within the window: everything the earlier actor contributed
+        to the workflow, including messages sent before the conflicting event (level 2)."""
+        out = {e_i.eid}
+        for x in reversed(self.by_actor[e_i.actor]):  # newest first; times are monotone
+            if t - x.t > window:
+                break
+            if x.t <= t:
+                out.add(x.eid)
+        return out
+
     def _accept(self, e: Event, pi_j, pending_pairs) -> None:
         self.pi[e.eid] = pi_j
-        self.prov.record_outputs(e)
+        declass = e.op in self.policy.verifiers and set(e.context) <= self.artifacts
+        self.prov.record_outputs(e, declassified=declass)
+        if e.artifact:
+            self.artifacts.add(e.artifact)
         self.accepted.append(e)
+        self.by_actor[e.actor].append(e)
         ot = obj_type(e.obj)
         for c in self.policy.constraints:
             if c.applies(ot, dict(e.attrs)) and self._relevant(c, e.op):

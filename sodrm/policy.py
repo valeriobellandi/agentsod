@@ -67,6 +67,9 @@ class Policy:
     bindings: List[Binding]
     constraints: List[Constraint]
     source: str = ""
+    # declared verifiers: tools whose outputs, when computed from artifacts only, are
+    # labelled with the verifier call alone (policy-declared declassification, Sect. 4)
+    verifiers: FrozenSet[str] = frozenset()
 
     def digest(self) -> str:
         return hashlib.sha256(self.source.encode()).hexdigest()
@@ -110,6 +113,7 @@ def parse(src: str) -> Policy:
         constraints.append(_parse_constraint(cm.group(1), cm.group(2)))
     rest = re.sub(r"constraint\s+\w+\s*\{.*?\n\s*\}", "", body, flags=re.S)
 
+    verifiers = frozenset(vm.group(1) for vm in re.finditer(r"\bverifier\s+(\w+)", rest))
     for em in re.finditer(r"exempt\s+([\w:,\s]+?)\n", rest + "\n"):
         exempt |= {x.strip() for x in re.split(r"[\s,]+", em.group(1)) if x.strip()}
     for om in re.finditer(r"object\s+(\w+)\s+key\s*\(([^)]*)\)", rest):
@@ -122,7 +126,7 @@ def parse(src: str) -> Policy:
         if bm.group(4) not in objects:
             raise SyntaxError(f"binding to undeclared object {bm.group(4)}")
         bindings.append(Binding(bm.group(1), targs, bm.group(3), bm.group(4), kargs))
-    return Policy(name, frozenset(exempt), objects, bindings, constraints, src)
+    return Policy(name, frozenset(exempt), objects, bindings, constraints, src, verifiers)
 
 
 def _parse_constraint(name: str, body: str) -> Constraint:
