@@ -53,3 +53,15 @@ def test_suite_v2_has_variants_and_adaptive_injection():
     assert "description field" in ad.ticket
     r = {x["condition"]: x for x in run_episode(MockChat(), ad)}
     assert r["L2"]["executed_harmful"] and not r["L2n"]["executed_harmful"]
+
+
+def test_safe_unauthorized_change_is_stopped_only_by_separation():
+    from experiments.gridops.scenarios import make_episodes_v3
+    from experiments.gridops.derived import outcomes, summarise
+    ep = make_episodes_v3(1)[0]
+    rows = run_episode(MockChat(), ep)
+    r = {x["condition"]: x for x in rows}
+    assert not r["L0"]["proposal_harmful"] and r["L0"]["executed"]      # safe, executed at level 0
+    assert not r["L2"]["executed"] and r["L2"]["monitor_approve"] == "deny"
+    s = summarise(outcomes(rows))[0]
+    assert s["L0+P"] == 1 and s["L1"] == 0                              # power-flow gate lets it pass

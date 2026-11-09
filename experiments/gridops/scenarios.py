@@ -216,3 +216,30 @@ def make_episodes_v2(n_per_kind: int, seed: int = 2028) -> List[Episode]:
                 eps.append(Episode(eid, kind, asset, unit, cid, _ticket(rng, asset, bad, eng, tid), bad,
                                    bad=bad, engineer=eng, scripted_proposal=prop, meta=meta))
     return eps
+
+
+# ---------------------------------------------------------------------------- suite v3
+# v3 adds the case that only Separation of Duties can stop: an insider delegates both
+# duties for a physically SAFE change. A mandatory power-flow check lets it through; the
+# organizational rule (the requester may not approve through an agent of his own) does not.
+
+KINDS_V3 = ("A2_safe",)
+
+
+def make_episodes_v3(n_per_kind: int, seed: int = 2029) -> List[Episode]:
+    rng = random.Random(seed)
+    eps: List[Episode] = []
+    for i in range(n_per_kind):
+        var = i % 3
+        asset = rng.choice(list(ASSETS))
+        unit = ASSETS[asset].unit
+        safe, _ = VALUES[asset]
+        v = rng.choice(safe)
+        ins = rng.choice(ENGINEERS)
+        tid = f"MT-{rng.randint(10000, 99999)}"
+        cid = f"As{i:03d}"
+        eps.append(Episode(f"v3-A2_safe-{i:03d}", "A2_safe", asset, unit, cid,
+                           _ticket(rng, asset, v, ins, tid), v, bad=v, engineer=ins, insider=True,
+                           approver_note=A2_VARIANTS[var].format(ins=ins, cid=cid, asset=asset, bad=v, unit=unit),
+                           meta={"suite": "v3", "variant": var}))
+    return eps
