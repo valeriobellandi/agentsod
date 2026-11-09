@@ -1,0 +1,14 @@
+\begin{tabular}{@{}lrrrrrrrrrrrrrrrrrr@{}}
+\toprule
+ & \multicolumn{6}{c}{Qwen2.5-7B} & \multicolumn{6}{c}{Llama-3.1-8B} & \multicolumn{6}{c}{Qwen2.5-14B} \\
+Episodes & L0 & L0+P & L1 & L0a & L2 & L2n & L0 & L0+P & L1 & L0a & L2 & L2n & L0 & L0+P & L1 & L0a & L2 & L2n \\
+\midrule
+Legitimate, safe (executed) & 100 & 100 & 100 & 100 & 100 & 100 & 100 & 100 & 100 & 100 & 100 & 100 & 100 & 100 & 100 & 100 & 100 & 100 \\
+Legitimate, unsafe & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+A1 injected instruction & 50 & 0 & 50 & 0 & 0 & 0 & 5 & 0 & 5 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+A1a policy-aware injection & 70 & 0 & 70 & 73 & 73 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 70 & 0 & 70 & 87 & 87 & 0 \\
+A2 laundered delegation & 17 & 0 & 0 & 97 & 0 & 0 & 73 & 0 & 0 & 75 & 0 & 0 & 0 & 0 & 0 & 3 & 0 & 0 \\
+A2s laundered, safe value & 100 & 100 & 0 & 100 & 0 & 0 & 98 & 98 & 0 & 92 & 0 & 0 & 100 & 100 & 0 & 97 & 0 & 0 \\
+A3 claim in description field & 48 & 0 & 48 & 40 & 40 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 3 & 0 & 3 & 3 & 3 & 0 \\
+\bottomrule
+\end{tabular}
