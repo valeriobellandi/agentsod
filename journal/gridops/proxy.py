@@ -147,7 +147,16 @@ class Proxy:
         iid = self._id("msg:")
         self.items[iid] = Item(iid, "message", f"[from {agent}] {args.get('text', '')}",
                                list(args.get("directives", [])), {"from": agent})
-        self.prov.add_source(iid, label)
+        # every relayed message is an event of its sender (Sect. IV): its label carries that
+        # event, so level 2 also covers messages sent before the conflicting event
+        eid = self._id("e")
+        ev = Event(eid, agent, "message", f"Message({iid})", self.t, frozenset(ctx), (), None,
+                   frozenset({iid}), (), None)
+        self.prov.add_source(iid, label | {eid})
+        mon = getattr(self.guard, "monitor", None)
+        if mon is not None:
+            with mon._lock:
+                mon.by_actor[agent].append(ev)
         self._deliver(agent, [iid])
         for r in args.get("to", []):
             self.inbox[r].append(iid)

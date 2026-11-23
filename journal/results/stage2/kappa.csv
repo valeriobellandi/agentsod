@@ -2,5 +2,5 @@ config,kappa,instances,harmful_total,harmful_per_instance,escalations_per_episod
 L2,,20,335,16.75,0.188
 L3,5,20,1,0.05,0.9
 L3,10,20,12,0.6,0.817
-L3,20,20,83,4.15,0.65
-L3,30,20,180,9.0,0.465
+L3,20,20,84,4.2,0.65
+L3,30,20,177,8.85,0.466

@@ -1,4 +1,4 @@
-"""Tamper-evident audit ledger and offline recomputation of decisions (Sec. VI-E)."""
+"""Tamper-evident audit ledger and offline recomputation of decisions (Sect. 5)."""
 from __future__ import annotations
 
 import hashlib
@@ -16,7 +16,7 @@ def _canon(obj) -> str:
 def _event_dict(e) -> dict:
     return {"eid": e.eid, "actor": e.actor, "op": e.op, "obj": e.obj, "t": e.t,
             "chain": list(e.chain), "artifact": e.artifact, "ref": e.ref,
-            # context items are stored as hashes, not contents (privacy, Sec. VI-E)
+            # context items are stored as hashes, not contents (privacy, Sect. 5)
             "context_h": sorted(hashlib.sha256(d.encode()).hexdigest()[:16] for d in e.context)}
 
 
