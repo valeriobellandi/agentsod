@@ -1,0 +1,45 @@
+policy energy_ops {
+  exempt org:acme
+
+  object SetpointChange key (asset, cid)
+  object VendorPayment  key (inv)
+
+  bind grid.submit_change(asset, cid, ..)
+    -> propose on SetpointChange(asset, cid)
+  bind grid.approve_change(asset, cid)
+    -> approve on SetpointChange(asset, cid)
+  bind grid.execute_change(asset, cid)
+    -> execute on SetpointChange(asset, cid)
+  bind erp.create_vendor(v, inv)
+    -> create_vendor on VendorPayment(inv)
+  bind erp.approve_invoice(inv)
+    -> approve_inv on VendorPayment(inv)
+  bind erp.release_payment(inv)
+    -> release on VendorPayment(inv)
+
+  constraint setpoint_4eyes {
+    on SetpointChange
+    conflict { propose, approve }
+    window 24h
+    separation substrate (model, operator)
+                 history 50 max 10
+    artifact setpoint_change_v1
+    on_violation escalate(role:shift_supervisor)
+  }
+
+  constraint critical_dual_approval {
+    on SetpointChange where criticality >= HIGH
+    require 2 separated approve before execute
+    window 4h
+    separation information
+    on_violation deny
+  }
+
+  constraint p2p {
+    on VendorPayment
+    conflict { create_vendor, approve_inv, release }
+    window 30d
+    separation accountability
+    on_violation deny
+  }
+}
