@@ -4,12 +4,14 @@ This folder is the code and data of the journal version of the paper, *Separatio
 for Multi-Agent LLM Systems: Model, Enforcement and Evaluation in Critical Infrastructures*.
 It is self-contained: run everything from inside `journal/`.
 
-**Difference from the top-level folder.** The top level holds the code of the AINA 2027
-conference paper. The monitor here is the one used for the journal experiments; at level 2 it
-treats as the earlier actor's contribution only the earlier conflicting event (Sect. IV of the
-journal paper), whereas the top-level monitor also counts the earlier actor's other events
-in the window. The Stage 2 environment here (`gridops/`: four workflows, 28 agents, attacks
-A1-A6) is also different from the single-workflow experiment in `../experiments/gridops/`.
+**Relation to the top-level folder.** The top level holds the code of the AINA 2027
+conference paper. The monitor here uses the same definition of level 2 (contributions of the
+earlier actor in the window, declared verifiers) and adds `would_decide` for the scheduler;
+the proxy records every relayed message as an event of its sender. The Stage 2 environment
+(`gridops/`: four workflows, 28 agents, attacks A1-A6) is different from the single-workflow
+experiment in `../experiments/gridops/`. The LLM rows in `results/stage2_llm_local/` were
+produced with the earlier definition (earlier conflicting event only); the L2 and L3 runs are
+being repeated.
 
 | Path | Content |
 |---|---|
