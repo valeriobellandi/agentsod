@@ -1,0 +1,19 @@
+{
+  "_note": "One open-weight model family per provider, so the operator dimension of level 3 is real. Prices in USD per 1M tokens, checked 10 Nov 2026 on third-party price trackers (morphllm.com for Groq, cloudprice.net for Together and DeepInfra); confirm on each provider's console before running. out_tokens_per_turn and latency_s are assumptions until calibrated with a smoke run (bench/estimate_cost.py --calibrate).",
+  "M1": {"provider": "groq", "base_url": "https://api.groq.com/openai/v1",
+         "model": "openai/gpt-oss-20b", "api_key_env": "GROQ_API_KEY",
+         "price_in": 0.075, "price_out": 0.30, "out_tokens_per_turn": 400, "latency_s": 1.0,
+         "local_ollama": "gpt-oss:20b"},
+  "M2": {"provider": "together", "base_url": "https://api.together.xyz/v1",
+         "model": "Qwen/Qwen2.5-7B-Instruct-Turbo", "api_key_env": "TOGETHER_API_KEY",
+         "price_in": 0.30, "price_out": 0.30, "out_tokens_per_turn": 150, "latency_s": 1.5,
+         "local_ollama": "qwen2.5:7b"},
+  "M3": {"provider": "deepinfra", "base_url": "https://api.deepinfra.com/v1/openai",
+         "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506", "api_key_env": "DEEPINFRA_API_KEY",
+         "price_in": 0.075, "price_out": 0.20, "out_tokens_per_turn": 150, "latency_s": 2.0,
+         "local_ollama": "mistral-small3.2:24b"},
+  "judge": {"provider": "groq", "base_url": "https://api.groq.com/openai/v1",
+            "model": "openai/gpt-oss-20b", "api_key_env": "GROQ_API_KEY",
+            "price_in": 0.075, "price_out": 0.30, "out_tokens_per_turn": 300, "latency_s": 1.0,
+            "local_ollama": "gpt-oss:20b"}
+}

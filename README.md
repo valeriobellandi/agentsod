@@ -10,6 +10,8 @@ language and the decision procedure of Algorithm 1 with its hash-chained log (Se
 and the evaluation of Sect. 6. It is the deterministic enforcement core only: no LLM is
 involved, and experiments with real agents are future work.
 
+**Journal version.** The code and data of the extended journal version (IEEE TDSC submission) are in [`journal/`](journal/README.md), a self-contained folder with its own copy of the monitor.
+
 ## Layout
 
 | Path | Content |

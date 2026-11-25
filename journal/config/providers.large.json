@@ -1,0 +1,19 @@
+{
+  "_note": "Larger open-weight models, one family per provider (real operator dimension for level 3). Prices in USD per 1M tokens, checked 23 Nov 2026 on third-party trackers (morphllm.com and usagepricing.com for Groq, getmaxim.ai for Together and DeepInfra); confirm them on each console before running. out_tokens_per_turn and latency_s are assumptions until calibrated with a smoke run. M3 changes family with respect to providers.example.json (Llama instead of Mistral): Mistral has no openly licensed model of this size served by these providers.",
+  "M1": {"provider": "groq", "base_url": "https://api.groq.com/openai/v1",
+         "model": "openai/gpt-oss-120b", "api_key_env": "GROQ_API_KEY",
+         "price_in": 0.15, "price_out": 0.60, "out_tokens_per_turn": 400, "latency_s": 1.5,
+         "local_ollama": "gpt-oss:120b"},
+  "M2": {"provider": "together", "base_url": "https://api.together.xyz/v1",
+         "model": "Qwen/Qwen2.5-72B-Instruct-Turbo", "api_key_env": "TOGETHER_API_KEY",
+         "price_in": 1.20, "price_out": 1.20, "out_tokens_per_turn": 150, "latency_s": 3.0,
+         "local_ollama": "qwen2.5:72b"},
+  "M3": {"provider": "deepinfra", "base_url": "https://api.deepinfra.com/v1/openai",
+         "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo", "api_key_env": "DEEPINFRA_API_KEY",
+         "price_in": 0.10, "price_out": 0.32, "out_tokens_per_turn": 150, "latency_s": 3.0,
+         "local_ollama": "llama3.3:70b"},
+  "judge": {"provider": "groq", "base_url": "https://api.groq.com/openai/v1",
+            "model": "openai/gpt-oss-120b", "api_key_env": "GROQ_API_KEY",
+            "price_in": 0.15, "price_out": 0.60, "out_tokens_per_turn": 300, "latency_s": 1.5,
+            "local_ollama": "gpt-oss:120b"}
+}
