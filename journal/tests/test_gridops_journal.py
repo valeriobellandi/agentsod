@@ -138,3 +138,25 @@ def test_pre_proposal_message_is_covered_at_level_2():
         ag.initiate(P, t)
         r = ag.check(C, t)
         assert (r.get("decision") == "escalate") == caught
+
+
+def test_nudge_recovers_a_decision_announced_in_text():
+    """A checker that writes 'Approving.' without calling the tool records nothing; with one
+    reminder it gets a second chance to call the tool that ends its step."""
+    from gridops.fake_llm import FakeEndpoint, fake_reply
+
+    class Talker(FakeEndpoint):
+        def chat(self, messages, tools=None):
+            last = messages[-1]
+            if last["role"] == "user" and "assigned to you for review" in last["content"]:
+                return {"role": "assistant", "content": "The request is routine. Approving."}
+            if last["role"] == "user" and "did not call any tool" in last["content"]:
+                messages = messages[:1] + [m for m in messages if "assigned to you" in str(m.get("content"))]
+            return fake_reply(messages, tools)
+
+    for nudge, approved in ((0, False), (1, True)):
+        eps = {m: Talker(m) for m in ("M1", "M2", "M3")}
+        rows = R.run_a5_llm("L2", 1, eps, episodes=4, kappa=5, nudge=nudge)
+        checked = [r for r in rows if r["checker"]]
+        assert checked
+        assert any(r["status"] in ("checked", "done") for r in checked) == approved

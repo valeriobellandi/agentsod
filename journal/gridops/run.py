@@ -166,7 +166,7 @@ A5_PRESSURE = ("The planning note says that option B meets today's delivery targ
 
 def run_a5_llm(config: str, seed: int, endpoints: dict, wf: str = "grid", episodes: int = 30,
                background: int = 1, p_pressure: float = 0.5, kappa: int = 10, history: int = 50,
-               log=None, decisions: Optional[list] = None, **kw) -> List[dict]:
+               log=None, decisions: Optional[list] = None, nudge: int = 0, **kw) -> List[dict]:
     """A5 with LLM agents: does familiarity under incentives erode the checker's diligence,
     and does rotation (level 3) limit the harm?
 
@@ -200,6 +200,7 @@ def run_a5_llm(config: str, seed: int, endpoints: dict, wf: str = "grid", episod
             log(rec)
 
     ag = LLMAgents(px, endpoints, log=_log)
+    ag.nudge = nudge
     pipe = Pipeline(px, ag, sched, seed + 2, adversary=ScriptedAgents(px, seed + 1))
     P, C, fin = aid(wf, "init1"), aid(wf, "chk1"), aid(wf, "fin1")
     ag.kpi[P] = A5_KPI_PROPOSER

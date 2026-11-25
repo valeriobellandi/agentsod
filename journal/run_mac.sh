@@ -64,7 +64,8 @@ case "${1:-}" in
   a5)
     ollama_up
     caffeinate -i $PY bench/a5_llm.py --providers config/providers.example.json --local \
-      --seeds "${A5_SEEDS:-1,2,3,4}" --workers "$WORKERS" --out results/a5_llm_local 2>&1 | tee -a run.log
+      --seeds "${A5_SEEDS:-1,2,3,4}" --workers "$WORKERS" --nudge "${NUDGE:-1}" \
+      --out "${A5_OUT:-results/a5_llm_local_v2}" 2>&1 | tee -a run.log
     ;;
   cloud-smoke)
     $PY bench/estimate_cost.py --providers config/providers.large.json | tail -4
@@ -79,7 +80,8 @@ case "${1:-}" in
     ;;
   a5-cloud)
     caffeinate -i $PY bench/a5_llm.py --providers config/providers.large.json \
-      --seeds "${A5_SEEDS:-1,2,3,4}" --workers 4 --out results/a5_llm_large 2>&1 | tee -a run.log
+      --seeds "${A5_SEEDS:-1,2,3,4}" --workers 4 --nudge "${NUDGE:-1}" \
+      --out "${A5_OUT:-results/a5_llm_large}" 2>&1 | tee -a run.log
     ;;
   status)
     if [ -f "$OUT/rows.jsonl" ]; then

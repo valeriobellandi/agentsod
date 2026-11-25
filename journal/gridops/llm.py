@@ -165,6 +165,10 @@ class LLMAgents:
         msgs = [{"role": "system", "content": system}, {"role": "user", "content": instruction}]
         tools = tool_specs(task.wf)
         last: dict = {}
+        # tools that end this step; a turn without tool calls before one of them is called
+        # gets up to self.nudge reminders (0 = original protocol)
+        ends = {0: {W.tools[0]}, 1: {W.tools[1], W.reject_tool}}.get(role, set())
+        ended, nudges = False, getattr(self, "nudge", 0)
         for turn in range(self.max_turns):
             t0 = time.time()
             ep = self._endpoint(agent)
@@ -185,6 +189,14 @@ class LLMAgents:
             msgs.append({"role": "assistant", "content": m.get("content") or "",
                          **({"tool_calls": calls} if calls else {})})
             if not calls:
+                if ends and not ended and nudges > 0:
+                    nudges -= 1
+                    names = " or ".join(sorted(x.replace(".", "__") for x in ends))
+                    msgs.append({"role": "user", "content": f"Your reply did not call any tool, so "
+                                 f"nothing was recorded for request {task.key}. Continue with the "
+                                 f"tools you need and finish the step by calling {names}."})
+                    self.log({"agent": agent, "task": task.tid, "nudge": True})
+                    continue
                 break
             for c in calls:
                 name = c["function"]["name"].replace("__", ".")
@@ -195,6 +207,7 @@ class LLMAgents:
                 if name in (W.read_tool, W.check_tool, W.reject_tool, *W.tools):
                     args.setdefault("key", task.key)
                 res = px.call(agent, name, args)
+                ended = ended or name in ends
                 self.log({"agent": agent, "task": task.tid, "tool": name, "args": args,
                           "result": {k: v for k, v in res.items() if k != "text"}})
                 last = res if "decision" in res else last

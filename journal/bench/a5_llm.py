@@ -51,6 +51,8 @@ def main() -> None:
     ap.add_argument("--p-pressure", type=float, default=0.5)
     ap.add_argument("--kappa", type=int, default=10)
     ap.add_argument("--workers", type=int, default=2)
+    ap.add_argument("--nudge", type=int, default=0,
+                    help="reminders when an agent ends its step without calling the tool that ends it")
     ap.add_argument("--out", default=str(ROOT / "results" / "a5_llm"))
     ap.add_argument("--smoke", action="store_true")
     a = ap.parse_args()
@@ -80,7 +82,8 @@ def main() -> None:
         decs = []
         t0 = time.time()
         rows = R.run_a5_llm(cfg, s, eps, episodes=episodes, background=a.background,
-                            p_pressure=a.p_pressure, kappa=a.kappa, log=log, decisions=decs)
+                            p_pressure=a.p_pressure, kappa=a.kappa, log=log, decisions=decs,
+                            nudge=a.nudge)
         with lock, open(rows_f, "a") as rf, open(out / "decisions.jsonl", "a") as df:
             for r in rows:
                 rf.write(json.dumps(r) + "\n")
