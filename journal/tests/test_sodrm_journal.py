@@ -387,3 +387,24 @@ def test_substrate_must_differ_in_every_listed_dimension():
         assert d.decision == expect, (model, operator, d.decision)
         if expect == "escalate":
             assert d.witnesses[0]["failed_at"] == 3
+
+
+def test_coverage_reports_dead_constraints_and_unbound_protected_tools():
+    from sodrm.policy import coverage
+    protected = frozenset({"grid.submit_change", "grid.approve_change", "grid.execute_change",
+                           "erp.create_vendor", "erp.approve_invoice", "erp.release_payment",
+                           "erp.change_bank_details"})
+    rep = coverage(POLICY, protected)
+    assert rep["dead"] == []
+    assert rep["unbound"] == ["erp.change_bank_details"]
+    p = copy.copy(POLICY)
+    p.bindings = [b for b in POLICY.bindings if b.op != "release"]
+    assert ("p2p", "release") in coverage(p, protected)["dead"]
+
+
+def test_unbound_protected_tool_is_denied_and_unprotected_one_is_left_out():
+    protected = frozenset({"erp.change_bank_details"})
+    assert POLICY.resolve("erp.change_bank_details", {"v": "x"}, protected) == "deny"
+    assert POLICY.resolve("docs.search", {}, protected) is None
+    op = POLICY.resolve("erp.approve_invoice", {"inv": "I1"}, protected)
+    assert op[0] == "approve_inv"

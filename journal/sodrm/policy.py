@@ -83,6 +83,31 @@ class Policy:
         return None
 
 
+    def resolve(self, tool: str, args: Dict[str, object], protected: FrozenSet[str]):
+        """Fail-closed resolution: a call to a protected tool that matches no binding is denied
+        (returns "deny"); an unprotected, unbound tool returns None and is left to per-call
+        access control."""
+        ev = self.bind(tool, args)
+        if ev is None and tool in protected:
+            return "deny"
+        return ev
+
+
+def coverage(policy: "Policy", protected: FrozenSet[str]) -> Dict[str, list]:
+    """Deployment-time coverage checks.
+
+    dead: (constraint, op) pairs whose operation no binding produces (a binding is missing);
+    unbound: protected tools that no binding maps to an operation, i.e. tools with side
+    effects that would otherwise stay outside the SoD policy."""
+    produced = {b.op for b in policy.bindings}
+    dead = []
+    for c in policy.constraints:
+        ops = set(c.conflict) | {o for o in (c.require_op, c.before_op) if o}
+        dead += [(c.name, o) for o in sorted(ops - produced)]
+    bound = {b.tool for b in policy.bindings}
+    return {"dead": dead, "unbound": sorted(set(protected) - bound)}
+
+
 _DUR = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 
 
